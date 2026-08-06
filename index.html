@@ -1,0 +1,91 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>L1 KPI — Ticket Lookup</title>
+<style>
+:root{--bg:#f4f7fb;--card:#fff;--ink:#1f2937;--muted:#64748b;--line:#dde5ee;--navy:#0b3d5c;--blue:#0b4a86;
+--green:#1FA463;--red:#c0392b;--amber:#b45309;--gbg:#e7f6ee;--rbg:#fdecec;--abg:#fef3c7;--lbg:#eef3f9;}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;line-height:1.5}
+.top{background:var(--navy);color:#fff;padding:16px 20px}.top h1{margin:0;font-size:18px}.top p{margin:2px 0 0;font-size:12.5px;opacity:.8}
+.wrap{max-width:920px;margin:0 auto;padding:20px}
+.search{display:flex;gap:8px;margin:6px 0 16px}
+.search input{flex:1;font-size:16px;padding:11px 14px;border:1.5px solid var(--line);border-radius:10px;outline:none}
+.search input:focus{border-color:var(--blue)}
+.search button{font-size:15px;font-weight:700;padding:0 20px;background:var(--blue);color:#fff;border:0;border-radius:10px;cursor:pointer}
+.hint{color:var(--muted);font-size:12.5px;margin:-8px 0 14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:0;overflow:hidden;box-shadow:0 1px 3px rgba(16,24,40,.05);margin-bottom:16px}
+.chead{padding:14px 18px;border-bottom:1px solid var(--line);background:#fbfcfe}
+.chead .id{font-size:19px;font-weight:800;color:var(--navy)}
+.chead .ttl{font-size:13.5px;color:var(--ink);margin-top:2px}
+.chead .meta{font-size:12px;color:var(--muted);margin-top:5px}
+.tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;margin-right:5px}
+.tag.p{background:var(--lbg);color:var(--blue)}
+.who{display:flex;gap:12px;flex-wrap:wrap;padding:14px 18px;border-bottom:1px solid var(--line)}
+.who .box{flex:1;min-width:210px;border-radius:10px;padding:10px 12px}
+.who .neg{background:var(--rbg);border:1px solid #efc2c2}.who .pos{background:var(--gbg);border:1px solid #b6e2c8}
+.who .lbl{font-size:11px;font-weight:800;letter-spacing:.03em;text-transform:uppercase}
+.who .neg .lbl{color:var(--red)}.who .pos .lbl{color:var(--green)}
+.who .names{font-size:14px;font-weight:700;margin-top:3px}
+.sec{padding:13px 18px;border-bottom:1px solid var(--line)}.sec:last-child{border-bottom:0}
+.sec h3{margin:0 0 7px;font-size:13px;color:var(--blue);font-weight:800;display:flex;align-items:center;gap:8px}
+.pill{font-size:10.5px;font-weight:800;padding:2px 9px;border-radius:999px;color:#fff}
+.pill.g{background:var(--green)}.pill.r{background:var(--red)}.pill.a{background:var(--amber)}.pill.n{background:#94a3b8}
+.kv{display:grid;grid-template-columns:170px 1fr;gap:2px 12px;font-size:12.8px}
+.kv .k{color:var(--muted)}.kv .v{color:var(--ink)}
+.none{color:var(--muted);font-size:12.5px}
+.err{background:var(--abg);border:1px solid #e6c766;border-radius:10px;padding:14px 16px;font-size:13.5px}
+.foot{color:var(--muted);font-size:11.5px;text-align:center;margin-top:6px}
+</style></head><body>
+<div class="top"><h1>L1 Service Desk — Ticket Lookup</h1><p id="sub">Enter a ticket number to see its full KPI breakdown · refreshed after each daily run</p></div>
+<div class="wrap">
+<div class="search"><input id="q" placeholder="e.g. 138474" autocomplete="off" inputmode="numeric"><button id="go">Look up</button></div>
+<div class="hint" id="count"></div>
+<div id="out"></div>
+<div class="foot">Read-only. Figures come from the same engine as the daily L1 KPI report. Two independent clocks run per ticket: SLA (from creation) and CSAT (from Ready-To-Resolve).</div>
+</div>
+<script>const _F=fetch("./tickets.json").then(r=>r.json());</script>
+<script>
+let DB={};_F.then(d=>{DB=d;document.getElementById("count").textContent=Object.keys(DB).length.toLocaleString()+" tickets loaded from the latest run.";if(location.hash){const v=location.hash.slice(1);document.getElementById("q").value=v;render(DB[v]||null);}});
+document.getElementById('count').textContent=Object.keys(DB).length.toLocaleString()+' tickets loaded from the latest run.';
+const esc=s=>String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+function pill(t,c){return `<span class="pill ${c}">${t}</span>`}
+function kv(rows){return `<div class="kv">`+rows.filter(r=>r[1]!==''&&r[1]!=null).map(r=>`<div class="k">${r[0]}</div><div class="v">${r[1]}</div>`).join('')+`</div>`}
+function render(t){
+ if(!t){document.getElementById('out').innerHTML=`<div class="err">No ticket found with that number in the latest run. Check the number and try again.</div>`;return;}
+ let neg=(t.neg||[]).length?t.neg.join(', '):'—', pos=(t.pos||[]).length?t.pos.join(', '):'—';
+ let h=`<div class="card"><div class="chead">
+   <div class="id">Ticket ${esc(t.id)}</div><div class="ttl">${esc(t.title)}</div>
+   <div class="meta"><span class="tag p">${esc(t.type)}</span><span class="tag p">${esc(t.priority)}</span>${esc(t.sa)} · Status: ${esc(t.status)} · Created ${esc(t.created)}${t.resolved?` · Resolved ${esc(t.resolved)}`:''}</div></div>
+   <div class="who"><div class="box neg"><div class="lbl">Counts against</div><div class="names">${esc(neg)}</div></div>
+     <div class="box pos"><div class="lbl">Positive / credited</div><div class="names">${esc(pos)}</div></div></div>`;
+ // CSAT
+ h+=`<div class="sec"><h3>CSAT — RTR accountability ${t.csat?pill(t.csat.result.replace(/[^A-Za-z]/g,'').toUpperCase().includes('PASS')?'PASS':'BREACH',t.csat.result.toUpperCase().includes('PASS')?'g':'r'):pill('N/A','n')}</h3>`;
+ if(t.csat){h+=kv([['Owner',esc(t.csat.owner)],['Ready-To-Resolve',esc(t.csat.rtr)],['Deadline (+2h)',esc(t.csat.deadline)],['Resolved',esc(t.csat.resolved)],['Accountable / credited',esc((t.csat.accountable||[]).join(', '))],['Scenario',esc(t.csat.scenario)]]);}
+ else h+=`<div class="none">This ticket was not marked Ready-To-Resolve, so it has no CSAT accountability entry.</div>`;
+ h+=`</div>`;
+ // SLA
+ h+=`<div class="sec"><h3>SLA — on-time resolution ${t.sla?pill('BREACH','r'):pill('within SLA','g')}</h3>`;
+ if(t.sla){h+=kv([['Attributed to',esc(t.sla.agent)],['Priority window',esc(t.sla.priority||t.priority)],['Over SLA',esc(t.sla.over)],['Reason',esc(t.sla.reason)]]);}
+ else h+=`<div class="none">No SLA breach recorded for this ticket.</div>`;
+ h+=`</div>`;
+ // Classification
+ let clsok=t.cls?String(t.cls.overall).toUpperCase().includes('PASS'):null;
+ h+=`<div class="sec"><h3>Classification finding ${t.cls?pill(clsok?'PASS':'REVIEW',clsok?'g':'a'):pill('N/A','n')}</h3>`;
+ if(t.cls){h+=kv([['Agent',esc(t.cls.agent)],['Current service area',esc(t.cls.current_sa)],['Suggested service area',esc(t.cls.suggested_sa)],['Service-area review',esc(t.cls.sa_review)],['Title review',esc(t.cls.title_review)],['Description review',esc(t.cls.desc_review)],['Overall',esc(t.cls.overall)]]);}
+ else h+=`<div class="none">Not in the classification-eligible set (only Incidents / Service Requests are classified).</div>`;
+ h+=`</div>`;
+ // FCR
+ let fok=t.fcr?String(t.fcr.result).toUpperCase().includes('YES')||String(t.fcr.result).toUpperCase().includes('QUAL'):null;
+ h+=`<div class="sec"><h3>First-call resolution ${t.fcr?pill(fok?'QUALIFIED':'not FCR',fok?'g':'n'):pill('N/A','n')}</h3>`;
+ if(t.fcr){h+=kv([['Agent',esc(t.fcr.agent)],['FCR flag',esc(t.fcr.flag)],['Group changes',esc(t.fcr.reassign)],['Result',esc(t.fcr.result)]]);}
+ else h+=`<div class="none">No FCR record.</div>`;
+ h+=`</div>`;
+ // params impacted
+ h+=`<div class="sec"><h3>Ownership &amp; parameters</h3>`+kv([['First L1 assignee',esc(t.initial)],['Final L1 assignee (owner)',esc(t.assigned)],['Group changes',esc(t.grpchg)],['Service-area edits',esc(t.samod)]])+`</div>`;
+ h+=`</div>`;
+ document.getElementById('out').innerHTML=h;
+}
+function look(){const v=document.getElementById('q').value.trim();if(!v)return;render(DB[v]||null);location.hash=v;}
+document.getElementById('go').onclick=look;
+document.getElementById('q').addEventListener('keydown',e=>{if(e.key==='Enter')look()});
+if(location.hash){const v=location.hash.slice(1);document.getElementById('q').value=v;render(DB[v]||null);}
+</script></body></html>
