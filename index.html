@@ -279,7 +279,7 @@ function renderTicket(t){
     <div class="mh"><div><div class="tid">TICKET ${esc(t.id)} · ${esc(String(t.type).toUpperCase())}</div><div class="ttl">${esc(t.title)}</div></div><div class="st2">${esc(t.status)}</div></div>
     <div class="chips"><span class="chip pr">${esc(t.priority)}</span><span class="chip">SA: ${esc(t.sa||'—')}</span><span class="chip">Created ${esc(t.created)}</span>${t.resolved?`<span class="chip">Resolved ${esc(t.resolved)}</span>`:''}${t.req?`<span class="chip">Requested by ${esc(t.req)}</span>`:''}</div>
     <div class="desc"><span class="dl">▸ Reported issue / manifest note</span>${esc(t.desc||'No description captured for this ticket.')}</div>
-    ${t.resnote?`<div class="desc" style="border-color:#2a5c49"><span class="dl" style="color:#35c08e">▸ Resolution</span>${esc(t.resnote)}</div>`:(t.resolved?`<div class="desc" style="border-color:#2a5c49"><span class="dl" style="color:#35c08e">▸ Resolution</span>Resolved — no resolution note captured in the ticket history.</div>`:'')}
+    ${t.resnote?`<div class="desc" style="border-color:#2a5c49"><span class="dl" style="color:#35c08e">▸ Resolution${t.resby?` — by ${esc(t.resby)}`:''}${t.rest?` · ${esc(t.rest)}`:''}</span>${esc(t.resnote)}</div>`:(t.resolved?`<div class="desc" style="border-color:#2a5c49"><span class="dl" style="color:#35c08e">▸ Resolution</span>Resolved — no resolution note captured in the ticket history.</div>`:'')}
   </div>
   <div class="grid">
     <div class="blk"><h3>SLA clock <span class="stamp ${t.sla?'r':'g'}">${t.sla?'Breach':'Within'}</span></h3>
@@ -301,8 +301,11 @@ function renderTicket(t){
         <div class="c pos"><div class="l">Positive / credited</div><div class="p"><div class="av">${ini((t.pos||[])[0]||'')||'—'}</div><div class="nm">${esc(ps)}</div></div></div></div>
       <div class="kv" style="margin-top:14px">${kv([['First L1 assignee',t.initial],['Final L1 owner',t.assigned],['Group changes',t.grpchg],['Service-area edits',t.samod],['FCR',t.fcr?(/yes|qual/i.test(t.fcr.result)?'Qualified':'No'):'—']])}</div>
     </div>
-    <div class="blk"><h3>Requester &amp; customer</h3>
-      <div class="kv">${kv([['Requested by (created by)',t.req||'—'],['Customer name',cu.name||'—'],['Company',cu.co||'—'],['Contact number',cu.mob||'—'],['Email',cu.em||'—']])}</div>
+    <div class="blk" style="grid-column:1/-1"><h3>Requester &amp; customer</h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:8px 40px">
+        <div class="kv">${kv([['Requested by (created by)',t.req||'—'],['Customer name',cu.name||'—'],['Company',cu.co||'—']])}</div>
+        <div class="kv" style="align-content:start">${kv([['Contact number',cu.mob||'—'],['Email',cu.em||'—'],['Resolved by',t.resby||'—']])}</div>
+      </div>
       ${t.cust?'':`<div style="margin-top:10px;font-size:11.5px;color:var(--dim);line-height:1.5">Customer contact fields show only when they were captured on the ticket — the source extract records them on edit. For full coverage, the SCSM export needs the RequestedUser / Company / Mobile columns added.</div>`}
     </div>
   </div>`;
